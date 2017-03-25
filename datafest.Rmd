@@ -15,26 +15,23 @@ knitr::opts_chunk$set(echo = TRUE)
 
 This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
 
-When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
-
-```{r cars}
-summary(cars)
-```
 
 ## Reading in Data & Merging destination data with 1% of (US) data 
 
 ```{r pressure, echo=FALSE}
 library(ggplot2)
 dest <- read.table('data/dest.txt', sep="\t", header = T, quote = "")
+us_sample <- read.table('data/us.data.1.percent.tsv', sep="\t", header = T, quote = "")
 data_sample <- read.table('data/data.1.percent.txt', sep="\t", header = T, quote = "")
 merged_data <- merge(dest, data_sample, by = 'srch_destination_id')
+merged_US <- merge(dest, us_sample, by = 'srch_destination_id')
 ```
 
 ## Heatmap of popular travel activities 
 ```{r pressure, echo=FALSE}
 library(ggplot2)
 popular = as.matrix(dest[,7:dim(dest)[2]])
-rnames <- Dest$srch_destination_name
+rnames <- dest$srch_destination_name
 rownames(popular) <- rnames
 
 Dest_hm <- heatmap(popular[0:10,0:4], Rowv = NA, Colv = NA, col = cm.colors(250), 
@@ -45,3 +42,29 @@ Dest_hm <- heatmap(popular[0:10,0:4], Rowv = NA, Colv = NA, col = cm.colors(250)
 
 ```
 Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
+
+## Number of clicks and bookings per user 
+```{r pressure, echo=FALSE}
+
+books <- merged_data[merged_data$is_booking == 1,]
+num_bookings <- aggregate(data.frame(count = books$is_booking), list(value = books$user_id), length)
+
+ggplot(num_bookings, aes(count)) + geom_bar() + ggtitle("Bookings per user Histogram")
+
+clicks <- merged_data[merged_data$is_booking == 0,]
+
+num_clicks <- aggregate(data.frame(count = clicks$is_booking), list(value = clicks$user_id), length)
+ggplot(num_clicks, aes(count)) + geom_bar() + ggtitle("Clicks per user Histogram")
+
+```
+## Destinations that were NOT booked: what are interesting features? 
+```{r pressure, echo=FALSE}
+popular_not_booked = as.matrix((clicks[,7:dim(clicks)[2]]))
+rnames <- clicks$srch_destination_name
+# maybe plot these on a map? 
+rownames(popular_not_booked) <- rnames
+
+dest_not_booked_hm <- heatmap(popular_not_booked, Rowv = NA, Colv = NA, col = cm.colors(250), scale = "column")
+
+
+```
