@@ -2,7 +2,9 @@
 title: "Datafest"
 author: "Lauren and Kwan"
 date: "3/24/2017"
-output: html_document
+output:
+  pdf_document: default
+  html_document: default
 ---
 
 ```{r setup, include=FALSE}
@@ -23,8 +25,8 @@ summary(cars)
 
 ```{r pressure, echo=FALSE}
 library(ggplot2)
-dest <- read.table('dest.txt', sep="\t", header = T, quote = "")
-data_sample <- read.table('data.1.percent.txt', sep="\t", header = T, quote = "")
+dest <- read.table('data/dest.txt', sep="\t", header = T, quote = "")
+data_sample <- read.table('data/data.1.percent.txt', sep="\t", header = T, quote = "")
 merged_data <- merge(dest, data_sample, by = 'srch_destination_id')
 ```
 
