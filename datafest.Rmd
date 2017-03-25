@@ -52,19 +52,35 @@ num_bookings <- aggregate(data.frame(count = books$is_booking), list(value = boo
 ggplot(num_bookings, aes(count)) + geom_bar() + ggtitle("Bookings per user Histogram")
 
 clicks <- merged_data[merged_data$is_booking == 0,]
+us_clicks <- merged_US[merged_US$is_booking == 0,]
 
 num_clicks <- aggregate(data.frame(count = clicks$is_booking), list(value = clicks$user_id), length)
 ggplot(num_clicks, aes(count)) + geom_bar() + ggtitle("Clicks per user Histogram")
 
 ```
-## Destinations that were NOT booked: what are interesting features? 
+## Look for couples vs. family trips that were booked 
 ```{r pressure, echo=FALSE}
-popular_not_booked = as.matrix((clicks[,7:dim(clicks)[2]]))
-rnames <- clicks$srch_destination_name
+
+couples <- subset(books, books$srch_adults_cnt == 2)
+families <- subset(books, books$srch_children_cnt >= 1)
+ggplot(data = couples, aes(hist_price_band, group = factor(hist_price_band))) + geom_density() + ggtitle("Price bands for couples")
+
+ggplot(data = families, aes(hist_price_band, group = factor(hist_price_band))) + geom_density() + ggtitle("Price bands for families")
+
+mean(couples$orig_destination_distance)
+
+```
+## Destinations that were not booked outside US: what are interesting features? 
+```{r pressure, echo=FALSE}
+s<- subset(clicks, !duplicated(clicks$srch_destination_id))
+s1 <- subset(s, s$hotel_country != "UNITED STATES OF AMERICA")
+length(s)
+popular_not_booked = as.matrix((s1[,7:10]))
+rnames <- s1$srch_destination_name
 # maybe plot these on a map? 
 rownames(popular_not_booked) <- rnames
 
-dest_not_booked_hm <- heatmap(popular_not_booked, Rowv = NA, Colv = NA, col = cm.colors(250), scale = "column")
+dest_not_booked_hm <- heatmap(popular_not_booked[1:3,], Rowv = NA, Colv = NA, col = cm.colors(250), scale = "column")
 
 
 ```
