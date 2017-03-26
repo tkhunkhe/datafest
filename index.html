@@ -69,7 +69,7 @@
 
     var g = svg.append("g");
 
-    d3.json("interactive_d3_map/countries.topo.json", function(error, us) {
+    d3.json("interactive_d3_map2/countries.topo.json", function(error, us) {
       g.append("g")
         .attr("id", "countries")
         .selectAll("path")
@@ -83,7 +83,7 @@
 
 
 
-  d3.csv("interactive_d3_map/booked_from_to.unique.csv", function(error, data) {
+  d3.csv("interactive_d3_map2/booked_from_to.unique.csv", function(error, data) {
         // g.selectAll("circle")
         //    .data(data)
         //    .enter()
