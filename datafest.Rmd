@@ -1,0 +1,227 @@
+---
+title: "Datafest"
+author: "Lauren and Kwan"
+date: "3/24/2017"
+output:
+  pdf_document: default
+  html_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## R Markdown
+
+This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
+
+
+## Reading in Data & Merging destination data with 1% of (US) data 
+
+```{r pressure, echo=FALSE}
+library(ggplot2)
+dest <- read.table('data/dest.txt', sep="\t", header = T, quote = "",na.strings = "NULL")
+us_sample <- read.table('data/us.data.1.percent.tsv', sep="\t", header = T, quote = "", na.strings = "NULL")
+data_sample <- read.table('data/data.1.percent.txt', sep="\t", header = T, quote = "",na.strings = "NULL")
+merged_data <- merge(dest, data_sample, by = 'srch_destination_id')
+merged_US <- merge(dest, us_sample, by = 'srch_destination_id')
+```
+
+## Heatmap of popular travel activities 
+```{r pressure, echo=FALSE}
+library(ggplot2)
+popular = as.matrix(dest[,7:dim(dest)[2]])
+rnames <- dest$srch_destination_name
+rownames(popular) <- rnames
+
+Dest_hm <- heatmap(popular[0:10,0:4], Rowv = NA, Colv = NA, col = cm.colors(250), 
+                   scale = "column")
+```
+## Correlation between frequency of user location and frequency of hotel location
+```{r pressure, echo=FALSE}
+
+```
+
+## Check if holiday
+```{r pressure, echo=FALSE}
+holidays_2015 <- c(as.Date("2015-01-01"), 
+              as.Date("2015-12-25"),
+              as.Date("2015-12-31"),
+              as.Date("2015-07-04"),
+              as.Date("2015-1-19"),
+              as.Date("2015-09-07"))
+us_sample$srch_ci = as.Date(us_sample$srch_ci)
+us_sample$srch_co = as.Date(us_sample$srch_co)
+
+data_sample.droped.na = subset(us_sample, !is.na(srch_ci)&!is.na(srch_co))
+dim(data_sample.droped.na)
+holiday_in_range = (holidays_2015 >= data_sample.droped.na$srch_ci & holidays_2015<=data_sample.droped.na$srch_co)
+
+
+Christmas_2015 <- ifelse(as.Date("2015-12-25")>= data_sample.droped.na$srch_ci & as.Date("2015-12-25")<=data_sample.droped.na$srch_co, T, F)
+NYE_2015 <- ifelse(as.Date("2015-12-31")>= data_sample.droped.na$srch_ci & as.Date("2015-12-31")<=data_sample.droped.na$srch_co, T, F)
+NYD_2015 <- ifelse(as.Date("2015-01-01")>= data_sample.droped.na$srch_ci & as.Date("2015-01-01")<=data_sample.droped.na$srch_co, T, F)
+IND_2015 <- ifelse(as.Date("2015-07-04")>= data_sample.droped.na$srch_ci & as.Date("2015-07-04")<=data_sample.droped.na$srch_co, T, F)
+LABOR_2015 <- ifelse(as.Date("2015-09-07")>= data_sample.droped.na$srch_ci & as.Date("2015-09-07")<=data_sample.droped.na$srch_co, T, F)
+MLK_2015 <- ifelse(as.Date("2015-01-19")>= data_sample.droped.na$srch_ci & as.Date("2015-01-19")<=data_sample.droped.na$srch_co, T, F)
+
+
+data_sample.droped.na[,'is_christmas'] = Christmas_2015
+data_sample.droped.na[,'is_NYE'] = NYE_2015
+data_sample.droped.na[,'is_NYD'] = NYD_2015
+data_sample.droped.na[,'is_IND'] = IND_2015
+data_sample.droped.na[,'is_LABOR'] = LABOR_2015
+data_sample.droped.na[,'is_MLK'] = MLK_2015
+
+is_holiday = data_sample.droped.na$is_christmas | data_sample.droped.na$is_NYE | data_sample.droped.na$is_NYD | data_sample.droped.na$is_IND | data_sample.droped.na$is_LABOR | data_sample.droped.na$is_MLK
+
+data_sample.droped.na[,'is_holiday'] = is_holiday
+
+write.table(data_sample.droped.na, "us_sample.droped.na.holidays.csv", sep=",", row.names = F, col.names = T, quote = F)
+merged_data.holiday <- merge(data_sample.droped.na, dest[,c('srch_destination_id', 'srch_destination_latitude', 'srch_destination_longitude')], by="srch_destination_id")
+length(unique(merged_data.holiday$srch_destination_id))
+length(unique(data_sample.droped.na$srch_destination_id))
+length(unique(dest$srch_destination_id))
+length(unique(dest$srch_destination_id))
+
+# head(merged_data.holiday[,c('user_id','srch_destination_id')])
+# merged_data.holiday$user_id[1]
+# merged_data.holiday$srch_destination_id[1]
+# merged_data.holiday$srch_destination_latitude[1]
+# merged_data.holiday$srch_destination_longitude[1]
+# 
+# data_sample.droped.na$srch_destination_id[data_sample.droped.na$user_id=='589504153']
+# 
+# dest$srch_destination_latitude[dest$srch_destination_id=='8369']
+# dest$srch_destination_longitude[dest$srch_destination_id=='8369']
+
+
+write.table(merged_data.holiday,'merged_data.holiday.csv', sep="\t", quote =F, row.names = F, col.names = T )
+
+advance_booking_days =  merged_data.holiday$srch_ci - as.Date(merged_data.holiday$date_time)
+
+merged_data.holiday[,'advance_booking_days']= advance_booking_days
+merged_data.holiday[,'advance_booking_days']= as.numeric(merged_data.holiday[,'advance_booking_days'])
+boxplot(merged_data.holiday$advance_booking_days~merged_data.holiday$is_NYD)
+
+cico_duration = merged_data.holiday$srch_co - merged_data.holiday$srch_ci
+merged_data.holiday[,'cico_duration']=cico_duration
+merged_data.holiday[,'cico_duration']=as.numeric(merged_data.holiday[,'cico_duration'])
+boxplot(merged_data.holiday$cico_duration~merged_data.holiday$is_holiday)
+summary((!merged_data.holiday$is_holiday)&merged_data.holiday$is_booking)
+
+boxplot(merged_data.holiday$orig_destination_distance~merged_data.holiday$is_holiday)
+
+boxplot(merged_data.holiday$srch_rm_cnt~merged_data.holiday$is_holiday)
+# mosaicplot(merged_data.holiday$is_mobile,merged_data.holiday$is_holiday)
+# boxplot(merged_data.holiday$is_package~merged_data.holiday$is_holiday)
+head(merged_data.holiday[,c('srch_destination_id','srch_destination_latitude','srch_destination_longitude')])
+
+```
+```
+Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
+
+## Number of clicks and bookings per user 
+```{r pressure, echo=FALSE}
+
+books <- merged_data[merged_data$is_booking == 1,]
+num_bookings <- aggregate(data.frame(count = books$is_booking), list(value = books$user_id), length)
+
+ggplot(num_bookings, aes(count)) + geom_bar() + ggtitle("Bookings per user Histogram")
+
+clicks <- merged_data[merged_data$is_booking == 0,]
+us_clicks <- merged_US[merged_US$is_booking == 0,]
+
+num_clicks <- aggregate(data.frame(count = clicks$is_booking), list(value = clicks$user_id), length)
+ggplot(num_clicks, aes(count)) + geom_bar() + ggtitle("Clicks per user Histogram")
+
+```
+## Look at Couples' trips 
+```{r pressure, echo=FALSE}
+
+couples <- subset(books, books$srch_adults_cnt == 2 & books$srch_children_cnt == 0)
+ggplot(data = couples, aes(hist_price_band, group = factor(hist_price_band))) + geom_density() + ggtitle("Price bands for couples")
+# remove null destination distances 
+# couples <- couples[-which((couples$orig_destination_distance == NULL)), ]
+# mean(couples$orig_destination_distance)
+
+
+```
+## Look at Familys' trips 
+```{r pressure, echo=FALSE}
+
+families <- subset(books, books$srch_children_cnt >= 1)
+hist(families$srch_children_cnt)
+# ggplot(data = families, aes(hist_price_band, group = factor(hist_price_band))) + geom_density() + ggtitle("Price bands for families")
+
+
+```
+
+## Correlation between popular measures
+```{r pressure, echo=FALSE}
+popular_dests <- dest[,6:length(dest)]
+# check normality
+par(mfrow=c(5,5))
+# x = mapply(as.numeric,popular_dests)
+# apply(x, 2, qqnorm)
+tpopular_dests=t(popular_dests)
+dim(tpopular_dests)
+library(Hmisc)
+pearson_mat <- rcorr(as.matrix(tpopular_dests[,0:100]), type = "pearson")
+# spearman_mat <- rcorr(as.matrix(tpopular_dests), type = "spearman")
+
+```
+## Clustering Users
+```{r pressure, echo=FALSE}
+colnames()
+dest_not_food = dest[,!grepl("food",colnames(dest))]
+which_popular = colnames(dest_not_food[,6:length(dest_not_food)])[apply(dest_not_food[,6:length(dest_not_food)], 1,which.max)]
+dest_not_food[,'which_popular'] = which_popular
+merged.holiday.not.food = merge(dest_not_food, merged_data.holiday, by = "srch_destination_id")
+write.table(merged.holiday.not.food, "merged.holiday.not.food", sep="\t", row.names=F, col.names=T, quote=F)
+head(merged.holiday.not.food[,c('user_id','srch_destination_id','srch_destination_latitude.x','srch_destination_latitude.y')])
+merged.holiday.not.food = merged.holiday.not.food[,-c(173:174)]
+colnames(merged.holiday.not.food)[4:5] = c("srch_destination_latitude","srch_destination_longitude")
+forclustering = unique(merged.holiday.not.food[, c('srch_destination_latitude','srch_destination_longitude','which_popular')])
+
+write.table(forclustering, "cluster_dest.tsv", sep="\t", row.names=F, col.names=T, quote=F)
+
+write.table(merged.holiday.not.food, "merged.holiday.not.food.tsv", sep="\t", row.names=F, col.names=T, quote=F)
+
+d <- dist(as.matrix(forclustering[,1:2]))
+latitude <- forclustering$srch_destination_latitude 
+longitude <- forclustering$srch_destination_longitude
+hc <- hclust(d)
+library(fpc)
+DBSCAN <- dbscan(cbind(latitude, longitude), eps = 1.5, MinPts = 8)
+plot(latitude, longitude, col = DBSCAN$cluster, pch = 20)
+forclustering[,'cluster_assignment'] = DBSCAN$cluster
+
+cluster_dest_merge = merge(forclustering, dest_not_food, by = c("srch_destination_latitude", "srch_destination_longitude"))
+
+
+mode = function(x){
+return (which.max((ftable(x))))
+}
+
+mode(cluster_dest_merge[1:5,"which_popular.x"])
+cluster_dest_merge[1:5,"which_popular.x"]
+
+pop_ = aggregate(cluster_assignment ~ ., cluster_dest_merge, function(x) mode(x["which_popular.x"]))
+
+```
+
+## Destinations that were not booked outside US: what are interesting features? 
+```{r pressure, echo=FALSE}
+s<- subset(clicks, !duplicated(clicks$srch_destination_id))
+s1 <- subset(s, s$hotel_country != "UNITED STATES OF AMERICA")
+length(s)
+popular_not_booked = as.matrix((s[,7:144]))
+rnames <- s1$srch_destination_name
+# maybe plot these on a map? 
+rownames(popular_not_booked) <- rnames
+
+dest_not_booked_hm <- heatmap(popular_not_booked[1:3,], Rowv = NA, Colv = NA, col = cm.colors(250), scale = "column")
+
+
+```
